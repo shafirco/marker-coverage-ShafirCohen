@@ -13,6 +13,7 @@ add_library(mce_core
     src/color_segmenter.cpp
     src/geometry.cpp
     src/grid_detector.cpp 
+    src/marker_detector.cpp
 )
 target_include_directories(mce_core PUBLIC ${CMAKE_SOURCE_DIR}/include)
 target_link_libraries(mce_core PUBLIC ${OpenCV_LIBS})

@@ -4,34 +4,49 @@
 #include <cmath>
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/utils/logger.hpp>
-#include "color_segmenter.hpp"
-#include "geometry.hpp"
-#include "grid_detector.hpp"
+#include "marker_detector.hpp"
+#include "marker_types.hpp"
 
 // Prints usage instructions for the CLI application
 static void print_usage(const char* argv0) {
-    std::cerr << "Usage: " << argv0 << " [--debug] <image1> [image2 ...]\n";
+    std::cerr << "Usage: " << argv0 << " [--debug] [--save-debug <dir>] <image1> [image2 ...]\n";
 }
 
 int main(int argc, char** argv) {
-    // Silence OpenCV logs (INFO/DEBUG). Use ERROR or SILENT:
+    // Silence OpenCV internal logs
     cv::utils::logging::setLogLevel(cv::utils::logging::LOG_LEVEL_ERROR);
-    // Optional: avoid thread-backend noise
-    cv::setNumThreads(1);
+    cv::setNumThreads(1); // optional
 
-    // Parse args
     bool debug = false;
+    DetectOptions opt;
     std::vector<std::string> paths;
+
+    // Parse arguments
     for (int i = 1; i < argc; ++i) {
         std::string s = argv[i];
-        if (s == "--debug") debug = true;
-        else paths.push_back(std::move(s));
+        if (s == "--debug") {
+            debug = true;
+            opt.debug = true;
+        }
+        else if (s == "--save-debug") {
+            if (i + 1 >= argc) {
+                std::cerr << "Missing directory after --save-debug\n";
+                return 2;
+            }
+            opt.save_debug = true;
+            opt.save_debug_dir = argv[++i];
+        }
+        else {
+            paths.push_back(std::move(s));
+        }
     }
     if (paths.empty()) {
         print_usage(argv[0]);
         return 2;
     }
+    if (debug) std::cerr << "[debug] OpenCV: " << CV_VERSION << "\n";
 
+    MarkerDetector detector;
     int exit_code = 0;
 
     for (const auto& path : paths) {
@@ -41,38 +56,15 @@ int main(int argc, char** argv) {
             exit_code = 1;
             continue;
         }
-
-        // 1) Allowed-color mask
-        cv::Mat mask = ColorSegmenter::allowedMaskHSV(bgr);
-        if (debug) std::cerr << "[debug] mask nonzero: " << cv::countNonZero(mask) << "\n";
-
-        // 2) Quad detection
-        auto quadOpt = geom::findStrongQuad(mask);
-        if (!quadOpt) {
-            if (debug) std::cerr << "[debug] no quad found -> marker not detected\n";
-            exit_code = 1;
-            continue; // do not print line for this image
-        }
-        const auto& quad = *quadOpt;
-
-        // 3) Warp to normalized square and seam check (debug info)
-        if (debug) {
-            cv::Mat warped = geom::warpToSquare(bgr, quad, 300);
-            cv::Mat wmask = ColorSegmenter::allowedMaskHSV(warped);
-            auto seams = grid::checkGridSeams(wmask);
-            std::cerr << "[debug] seams: "
-                << "cx1=" << seams.cx1 << ", cx2=" << seams.cx2
-                << ", cy1=" << seams.cy1 << ", cy2=" << seams.cy2
-                << ", ok=" << seams.ok << "\n";
+        auto resOpt = detector.detect(bgr, opt, path);
+        if (!resOpt) {
+            exit_code = 1; // do not print a line for this image
+            continue;
         }
 
-        // 4) Coverage computation
-        double cov = geom::polygonCoveragePercent(quad, bgr.size());
-        int rounded = (int)std::lround(cov);
-
-        // 5) Print in required format: "<image_file> <coverage_percent>%"
+        // Round to nearest integer and print as required: "<image_file> <percent>%"
+        int rounded = (int)std::lround(resOpt->coverage_percent);
         std::cout << path << " " << rounded << "%\n";
     }
-
     return exit_code;
 }
