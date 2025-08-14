@@ -4,22 +4,21 @@
 namespace grid {
 
     struct Seams {
-        int cx1 = -1; // vertical seam near ~1/3 width
-        int cx2 = -1; // vertical seam near ~2/3 width
-        int cy1 = -1; // horizontal seam near ~1/3 height
-        int cy2 = -1; // horizontal seam near ~2/3 height
+        int cx1 = -1, cx2 = -1;
+        int cy1 = -1, cy2 = -1;
         bool ok = false;
     };
 
-    /**
-     * Given a binary mask of the warped marker (NªN), detect four "seams":
-     * two vertical and two horizontal lines where color transitions occur
-     * around ~1/3 and ~2/3 of the width/height.
-     *
-     * Implementation:
-     *  - Reduce columns/rows (sum) to get 1D signals.
-     *  - Find minima in [W/6..W/2] & [W/2..5W/6] and similarly for rows.
-     *  - Check if they are near W/3 and 2W/3 (tolerant threshold).
-     */
+    // NEW: per-cell coverage report for the 3x3 grid
+    struct CellsReport {
+        double frac[3][3];  // fraction of "allowed" pixels in each cell
+        bool ok = false;    // true iff every cell >= minFraction
+    };
+
+    // Existing:
     Seams checkGridSeams(const cv::Mat& mask);
+
+    // NEW: checks each of the 9 cells in the warped mask (NªN).
+    // Returns per-cell fractions and overall pass/fail by minFraction.
+    CellsReport checkGridCells(const cv::Mat& mask, double minFraction);
 }

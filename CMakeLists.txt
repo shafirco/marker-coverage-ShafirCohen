@@ -14,12 +14,13 @@ add_library(mce_core
     src/geometry.cpp
     src/grid_detector.cpp 
     src/marker_detector.cpp
+    src/timer.cpp
 )
 target_include_directories(mce_core PUBLIC ${CMAKE_SOURCE_DIR}/include)
 target_link_libraries(mce_core PUBLIC ${OpenCV_LIBS})
 
 # CLI application
-add_executable(marker_coverage src/main.cpp)
+add_executable(marker_coverage src/main.cpp )
 target_link_libraries(marker_coverage PRIVATE mce_core)
 
 # Warnings

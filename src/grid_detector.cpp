@@ -28,6 +28,15 @@ namespace {
     }
 }
 
+namespace {
+    static double safeFraction(const Mat& roi) {
+        if (roi.empty()) return 0.0;
+        const double total = (double)roi.total();
+        if (total <= 0.0) return 0.0;
+        return (double)countNonZero(roi) / total;
+    }
+}
+
 grid::Seams grid::checkGridSeams(const Mat& mask) {
     CV_Assert(!mask.empty() && mask.type() == CV_8UC1);
     const int W = mask.cols, H = mask.rows;
@@ -54,4 +63,30 @@ grid::Seams grid::checkGridSeams(const Mat& mask) {
     const bool okY = near(s.cy1, H / 3, tolY) && near(s.cy2, 2 * H / 3, tolY);
     s.ok = okX && okY;
     return s;
+}
+
+
+grid::CellsReport grid::checkGridCells(const Mat& mask, double minFraction) {
+    CV_Assert(!mask.empty() && mask.type() == CV_8UC1);
+    CV_Assert(mask.rows == mask.cols); // expect square warped mask
+
+    const int N = mask.rows;
+    const int cell = N / 3;
+
+    CellsReport rep{};
+    rep.ok = true;
+
+    for (int r = 0; r < 3; ++r) {
+        for (int c = 0; c < 3; ++c) {
+            const int x = c * cell;
+            const int y = r * cell;
+            const int w = (c == 2 ? N - x : cell);
+            const int h = (r == 2 ? N - y : cell);
+            Mat roi = mask(Rect(x, y, w, h));
+            const double f = safeFraction(roi);
+            rep.frac[r][c] = f;
+            if (f < minFraction) rep.ok = false;
+        }
+    }
+    return rep;
 }
