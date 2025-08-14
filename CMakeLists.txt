@@ -8,18 +8,22 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # Find OpenCV package
 find_package(OpenCV REQUIRED)
 
+# Core library (now with real sources)
+add_library(mce_core
+    src/color_segmenter.cpp
+)
+target_include_directories(mce_core PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(mce_core PUBLIC ${OpenCV_LIBS})
+
 # CLI application
 add_executable(marker_coverage src/main.cpp)
-
-# Link OpenCV
-target_link_libraries(marker_coverage PRIVATE ${OpenCV_LIBS})
-
-# Include OpenCV headers
-target_include_directories(marker_coverage PRIVATE ${OpenCV_INCLUDE_DIRS})
+target_link_libraries(marker_coverage PRIVATE mce_core)
 
 # Warnings
 if (MSVC)
+  target_compile_options(mce_core PRIVATE /W4 /permissive-)
   target_compile_options(marker_coverage PRIVATE /W4 /permissive-)
 else()
+  target_compile_options(mce_core PRIVATE -Wall -Wextra -Wpedantic)
   target_compile_options(marker_coverage PRIVATE -Wall -Wextra -Wpedantic)
 endif()
