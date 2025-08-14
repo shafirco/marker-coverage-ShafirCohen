@@ -31,3 +31,6 @@ else()
   target_compile_options(mce_core PRIVATE -Wall -Wextra -Wpedantic)
   target_compile_options(marker_coverage PRIVATE -Wall -Wextra -Wpedantic)
 endif()
+
+enable_testing()
+add_subdirectory(tests)
