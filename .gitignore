@@ -1,0 +1,27 @@
+# Build
+/build/
+/out/
+/dist/
+/CMakeFiles/
+/CMakeCache.txt
+*.cmake
+compile_commands.json
+
+# IDE/OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# VS/MSBuild
+*.sln
+*.vcxproj*
+*.user
+
+# Artifacts
+*.png
+*.jpg
+*.jpeg
+*.bmp
+*.tiff
+*.log
