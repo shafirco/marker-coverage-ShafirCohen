@@ -5,14 +5,17 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# Core library – removed for now to avoid empty target issues
-# We'll reintroduce it once we add sources in later steps.
+# Find OpenCV package
+find_package(OpenCV REQUIRED)
 
 # CLI application
 add_executable(marker_coverage src/main.cpp)
 
-# Public headers directory (for later)
-target_include_directories(marker_coverage PUBLIC ${CMAKE_SOURCE_DIR}/include)
+# Link OpenCV
+target_link_libraries(marker_coverage PRIVATE ${OpenCV_LIBS})
+
+# Include OpenCV headers
+target_include_directories(marker_coverage PRIVATE ${OpenCV_INCLUDE_DIRS})
 
 # Warnings
 if (MSVC)
