@@ -10,6 +10,7 @@ compile_commands.json
 # IDE/OS
 .vscode/
 .idea/
+.vs/
 .DS_Store
 Thumbs.db
 
@@ -17,6 +18,24 @@ Thumbs.db
 *.sln
 *.vcxproj*
 *.user
+
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Objects
+*.o
+*.obj
+
+# Libraries
+*.a
+*.lib
+
+# Debug info
+*.pdb
+*.ilk
 
 # Artifacts
 *.png
