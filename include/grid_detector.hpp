@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <opencv2/opencv.hpp>
 
 namespace grid {
@@ -18,7 +18,7 @@ namespace grid {
     // Existing:
     Seams checkGridSeams(const cv::Mat& mask);
 
-    // NEW: checks each of the 9 cells in the warped mask (N�N).
+    // NEW: checks each of the 9 cells in the warped mask (N×N).
     // Returns per-cell fractions and overall pass/fail by minFraction.
     CellsReport checkGridCells(const cv::Mat& mask, double minFraction);
 }

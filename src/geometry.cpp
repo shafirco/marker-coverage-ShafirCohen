@@ -88,6 +88,31 @@ cv::Mat geom::warpToSquare(const Mat& bgr, const vector<Point2f>& quad, int N) {
     return out;
 }
 
+geom::WarpResult geom::warpToSquareWithH(const cv::Mat& bgr,
+    const std::vector<cv::Point2f>& quad,
+    int N)
+{
+    CV_Assert(!bgr.empty() && bgr.type() == CV_8UC3);
+    CV_Assert(quad.size() == 4 && N > 0);
+
+    std::vector<Point2f> src = sortClockwiseTL(quad);
+    std::vector<Point2f> dst{
+        Point2f(0.f,           0.f),
+        Point2f((float)N - 1,  0.f),
+        Point2f((float)N - 1, (float)N - 1),
+        Point2f(0.f,          (float)N - 1)
+    };
+
+    Mat H = getPerspectiveTransform(src, dst);
+    Mat out;
+    warpPerspective(bgr, out, H, Size(N, N), INTER_LINEAR, BORDER_REPLICATE);
+
+    Mat Hinv; invert(H, Hinv, DECOMP_SVD);
+    return { out, H, Hinv };
+}
+
+
+
 double geom::polygonCoveragePercent(const vector<Point2f>& poly, const Size& sz) {
     if (poly.size() < 3) return 0.0;
     double A = contourArea(poly);

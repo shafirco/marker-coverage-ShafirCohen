@@ -25,6 +25,6 @@ struct DetectOptions {
     int   pre_blur_ksize = 3;  // 0 disables Gaussian blur; use odd >=3
     int   morph_open_iter = 1;
     int   morph_close_iter = 2;
-    int   seg_smin = 60;       // global lower-bound for S channel
-    int   seg_vmin = 50;       // global lower-bound for V channel
+    int   seg_smin = 83;       // global lower-bound for S channel
+    int   seg_vmin = 70;       // global lower-bound for V channel
 };

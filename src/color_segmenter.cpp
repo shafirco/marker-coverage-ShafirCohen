@@ -1,3 +1,4 @@
+#include <opencv2/imgproc.hpp>
 #include "color_segmenter.hpp"
 using namespace cv;
 
@@ -29,6 +30,13 @@ Mat ColorSegmenter::allowedMaskHSV(const Mat& bgr, const SegOptions& opt) {
     }
 
     Mat hsv; cvtColor(src, hsv, COLOR_BGR2HSV);
+    std::vector<Mat> hsvch; split(hsv, hsvch);
+
+    Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+    clahe->setClipLimit(2.0); 
+    clahe->setTilesGridSize(Size(8, 8));
+    clahe->apply(hsvch[2], hsvch[2]);
+    merge(hsvch, hsv);
 
     // Base HSV ranges (can be tightened/loosened via global smin/vmin)
     HsvRange red1{ 0, 10,  80,255, 50,255 };
@@ -41,7 +49,7 @@ Mat ColorSegmenter::allowedMaskHSV(const Mat& bgr, const SegOptions& opt) {
 
     // Apply global lower-bounds for S and V
     auto applySV = [&](HsvRange r) {
-        r.smin = clamp(std::max(r.smin, opt.smin), 0, 255);
+        r.smin = clamp(std::max(r.smin, opt.smin), 20, 200);
         r.vmin = clamp(std::max(r.vmin, opt.vmin), 0, 255);
         return r;
     };
@@ -55,6 +63,11 @@ Mat ColorSegmenter::allowedMaskHSV(const Mat& bgr, const SegOptions& opt) {
         | inRangeH(hsv, blue) | inRangeH(hsv, magenta)
         | inRangeH(hsv, cyan);
 
+    // Remove whites/highlights: low-S & high-V
+    cv::Mat white;
+    inRange(hsv, cv::Scalar(0, 0, 210), cv::Scalar(180, 60, 255), white);
+    bitwise_and(mask, ~white, mask);
+
     // Morphological cleanup
     Mat k = getStructuringElement(MORPH_RECT, Size(3, 3));
     if (opt.open_iter > 0)  morphologyEx(mask, mask, MORPH_OPEN, k, Point(-1, -1), opt.open_iter);
@@ -62,3 +75,4 @@ Mat ColorSegmenter::allowedMaskHSV(const Mat& bgr, const SegOptions& opt) {
 
     return mask;
 }
+

@@ -9,11 +9,11 @@
  * smin / vmin: global minimums for S and V (clamped with per-color ranges).
  */
 struct SegOptions {
-    int blur_ksize = 0;
+    int blur_ksize = 3;
     int open_iter = 1;
     int close_iter = 2;
-    int smin = 60;
-    int vmin = 50;
+    int smin = 90;
+    int vmin = 80;
 };
 
 /**
@@ -28,4 +28,5 @@ public:
 
     // Tunable version with SegOptions overrides
     static cv::Mat allowedMaskHSV(const cv::Mat& bgr, const SegOptions& opt);
+
 };

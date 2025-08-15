@@ -45,10 +45,11 @@ grid::Seams grid::checkGridSeams(const Mat& mask) {
     reduce(mask, colsum, 0, REDUCE_SUM, CV_32S); // 1 x W
     reduce(mask, rowsum, 1, REDUCE_SUM, CV_32S); // H x 1
 
-    const int vx1_lo = W / 6, vx1_hi = W / 2;
-    const int vx2_lo = W / 2, vx2_hi = 5 * W / 6;
-    const int hy1_lo = H / 6, hy1_hi = H / 2;
-    const int hy2_lo = H / 2, hy2_hi = 5 * H / 6;
+    // Make the search ranges more flexible
+    const int vx1_lo = W / 5, vx1_hi = 2 * W / 5;  // More flexible range for first vertical line
+    const int vx2_lo = 3 * W / 5, vx2_hi = 4 * W / 5;  // More flexible range for second vertical line
+    const int hy1_lo = H / 5, hy1_hi = 2 * H / 5;  // More flexible range for first horizontal line
+    const int hy2_lo = 3 * H / 5, hy2_hi = 4 * H / 5;  // More flexible range for second horizontal line
 
     Seams s;
     s.cx1 = minIndexInRange(colsum, vx1_lo, vx1_hi, /*isColVec=*/true);
@@ -56,15 +57,20 @@ grid::Seams grid::checkGridSeams(const Mat& mask) {
     s.cy1 = minIndexInRange(rowsum, hy1_lo, hy1_hi, /*isColVec=*/false);
     s.cy2 = minIndexInRange(rowsum, hy2_lo, hy2_hi, /*isColVec=*/false);
 
-    const int tolX = W / 12; // tolerant thresholds
-    const int tolY = H / 12;
+    // More tolerant thresholds
+    const int tolX = W / 6;
+    const int tolY = H / 6;
 
+    // Check if the seams are approximately at 1/3 and 2/3 positions
     const bool okX = near(s.cx1, W / 3, tolX) && near(s.cx2, 2 * W / 3, tolX);
     const bool okY = near(s.cy1, H / 3, tolY) && near(s.cy2, 2 * H / 3, tolY);
-    s.ok = okX && okY;
+    
+    // Additional check: make sure the seams are properly spaced
+    const bool spacing_ok = (s.cx2 - s.cx1) > W / 6 && (s.cy2 - s.cy1) > H / 6;
+    
+    s.ok = okX && okY && spacing_ok;
     return s;
 }
-
 
 grid::CellsReport grid::checkGridCells(const Mat& mask, double minFraction) {
     CV_Assert(!mask.empty() && mask.type() == CV_8UC1);

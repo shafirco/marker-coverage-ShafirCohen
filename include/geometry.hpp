@@ -5,6 +5,12 @@
 
 namespace geom {
 
+    struct WarpResult {
+        cv::Mat image;   // N x N
+        cv::Mat H;       // 3x3, src->dst
+        cv::Mat Hinv;    // 3x3, dst->src
+    };
+
     /**
      * Try to extract a strong quadrilateral from a binary mask (CV_8UC1).
      * Strategy:
@@ -24,6 +30,8 @@ namespace geom {
     cv::Mat warpToSquare(const cv::Mat& bgr,
         const std::vector<cv::Point2f>& quad,
         int N);
+
+    WarpResult warpToSquareWithH(const cv::Mat& bgr, const std::vector<cv::Point2f>& quad, int N);
 
     /**
      * Compute polygon coverage in percent relative to the whole image size.
