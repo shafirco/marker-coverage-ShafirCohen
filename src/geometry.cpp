@@ -1,4 +1,4 @@
-#include "geometry.hpp"
+ï»¿#include "geometry.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -6,7 +6,7 @@ using namespace cv;
 using std::vector;
 
 namespace {
-    // Sort corners in clockwise order around centroid; start from top-left.
+    /// @brief Sort 4 points clockwise around centroid, starting from top-left.
     static vector<Point2f> sortClockwiseTL(const vector<Point2f>& ptsIn) {
         CV_Assert(ptsIn.size() == 4);
         Point2f c(0, 0);
@@ -22,7 +22,7 @@ namespace {
         std::sort(withAngle.begin(), withAngle.end(),
             [](auto& a, auto& b) { return a.first < b.first; });
 
-        // Now rotate so the first is the “top-left” (min x+y heuristic)
+        // Rotate so the first is top-left (min x+y heuristic).
         int start = 0;
         float best = 1e9f;
         for (int i = 0; i < 4; ++i) {
@@ -33,7 +33,7 @@ namespace {
 
         vector<Point2f> out(4);
         for (int i = 0; i < 4; ++i) {
-            out[i] = withAngle[(start + i) % 4].second; // TL, TR, BR, BL (clockwise)
+            out[i] = withAngle[(start + i) % 4].second; // TL, TR, BR, BL
         }
         return out;
     }
@@ -43,11 +43,16 @@ std::optional<std::vector<Point2f>>
 geom::findStrongQuad(const Mat& allowedMask) {
     CV_Assert(!allowedMask.empty() && allowedMask.type() == CV_8UC1);
 
+    // Conservative tweak: single 3Ã—3 close to fill small holes.
+    Mat work = allowedMask.clone();
+    Mat k3 = getStructuringElement(MORPH_RECT, Size(3, 3));
+    morphologyEx(work, work, MORPH_CLOSE, k3, Point(-1, -1), 1);
+
     vector<vector<Point>> contours;
-    findContours(allowedMask, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+    findContours(work, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
     if (contours.empty()) return std::nullopt;
 
-    // Choose the largest contour by area
+    // Select largest contour by area.
     double bestA = 0.0;
     vector<Point> best;
     for (auto& c : contours) {
@@ -56,7 +61,7 @@ geom::findStrongQuad(const Mat& allowedMask) {
     }
     if (best.empty()) return std::nullopt;
 
-    // Try direct quad approximation
+    // Try direct polygon approximation.
     vector<Point> approx;
     approxPolyDP(best, approx, 0.02 * arcLength(best, true), true);
     if (approx.size() == 4 && isContourConvex(approx)) {
@@ -66,11 +71,11 @@ geom::findStrongQuad(const Mat& allowedMask) {
         return sortClockwiseTL(q);
     }
 
-    // Fallback: minAreaRect
+    // Fallback: minAreaRect box.
     RotatedRect rr = minAreaRect(best);
     Point2f p4[4];
     rr.points(p4);
-    vector<Point2f> q{ p4[0],p4[1],p4[2],p4[3] };
+    vector<Point2f> q{ p4[0], p4[1], p4[2], p4[3] };
     return sortClockwiseTL(q);
 }
 
@@ -80,7 +85,8 @@ cv::Mat geom::warpToSquare(const Mat& bgr, const vector<Point2f>& quad, int N) {
 
     vector<Point2f> src = sortClockwiseTL(quad);
     vector<Point2f> dst{
-        {0.f,0.f}, {(float)N - 1,0.f}, {(float)N - 1,(float)N - 1}, {0.f,(float)N - 1}
+        {0.f, 0.f}, {(float)N - 1, 0.f},
+        {(float)N - 1, (float)N - 1}, {0.f, (float)N - 1}
     };
     Mat H = getPerspectiveTransform(src, dst);
     Mat out;
@@ -97,10 +103,10 @@ geom::WarpResult geom::warpToSquareWithH(const cv::Mat& bgr,
 
     std::vector<Point2f> src = sortClockwiseTL(quad);
     std::vector<Point2f> dst{
-        Point2f(0.f,           0.f),
-        Point2f((float)N - 1,  0.f),
-        Point2f((float)N - 1, (float)N - 1),
-        Point2f(0.f,          (float)N - 1)
+        Point2f(0.f,          0.f),
+        Point2f((float)N - 1, 0.f),
+        Point2f((float)N - 1,(float)N - 1),
+        Point2f(0.f,         (float)N - 1)
     };
 
     Mat H = getPerspectiveTransform(src, dst);
@@ -110,8 +116,6 @@ geom::WarpResult geom::warpToSquareWithH(const cv::Mat& bgr,
     Mat Hinv; invert(H, Hinv, DECOMP_SVD);
     return { out, H, Hinv };
 }
-
-
 
 double geom::polygonCoveragePercent(const vector<Point2f>& poly, const Size& sz) {
     if (poly.size() < 3) return 0.0;

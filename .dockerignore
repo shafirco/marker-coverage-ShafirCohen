@@ -1,0 +1,17 @@
+.git
+.gitignore
+.vscode
+.idea
+.vs
+build
+out
+dist
+CMakeFiles
+CMakeCache.txt
+*.cmake
+*.png
+*.jpg
+*.jpeg
+*.bmp
+*.tiff
+*.log

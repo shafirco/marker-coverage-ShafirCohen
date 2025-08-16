@@ -9,7 +9,7 @@
 #include "marker_detector.hpp"
 #include "marker_types.hpp"
 
-// Prints usage instructions for the CLI application
+/// @brief Print CLI usage.
 static void print_usage(const char* argv0) {
     std::cerr << "Usage: " << argv0
         << " [--debug]"
@@ -20,12 +20,12 @@ static void print_usage(const char* argv0) {
 }
 
 int main(int argc, char** argv) {
-    // Keep OpenCV logs quiet (only errors) and reduce thread noise
+    // Quieter OpenCV logs; avoid thread noise.
     cv::utils::logging::setLogLevel(cv::utils::logging::LOG_LEVEL_ERROR);
     cv::setNumThreads(1); // optional
 
     bool debug = false;
-    DetectOptions opt;                  // defaults: strict_grid=true, min_cell_fraction=0.20, warp_size=300
+    DetectOptions opt;                 // defaults: strict_grid=true, min_cell_fraction=0.20, warp_size=300
     std::vector<std::string> paths;
 
     // --- Parse arguments ---
@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
             }
         }
         else {
-            // Treat as image path
+            // Treat as image path.
             paths.push_back(std::move(s));
         }
     }
@@ -95,14 +95,14 @@ int main(int argc, char** argv) {
 
         auto resOpt = detector.detect(bgr, opt, path);
         if (!resOpt) {
-            // In strict mode, failing grid validation or no quad → considered "not found"
-            // Show a minimal warning on strict failure (stderr), but print no result line.
+            // In strict mode, failing grid validation or no quad → "not found".
+            // Emit a minimal warning (stderr); do not print a result line.
             if (!debug) std::cerr << "[warn] no marker detected (strict mode): " << path << "\n";
             exit_code = 1;
-            continue; // do not print a line for this image
+            continue;
         }
 
-        // Print ONLY the required result format to stdout: "<image_file> <coverage_percent>%"
+        // Required output format to stdout: "<image_file> <coverage_percent>%"
         int rounded = (int)std::lround(resOpt->coverage_percent);
         std::cout << path << " " << rounded << "%\n";
     }

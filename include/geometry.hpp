@@ -5,6 +5,7 @@
 
 namespace geom {
 
+    /// @brief Warped square image + homographies (src->dst, dst->src).
     struct WarpResult {
         cv::Mat image;   // N x N
         cv::Mat H;       // 3x3, src->dst
@@ -12,32 +13,32 @@ namespace geom {
     };
 
     /**
-     * Try to extract a strong quadrilateral from a binary mask (CV_8UC1).
-     * Strategy:
-     *  - Find external contours over the mask of allowed colors.
-     *  - Take the largest contour by area.
-     *  - If approxPolyDP gives a convex 4-vertex polygon → use it.
-     *  - Otherwise, fall back to the minAreaRect box.
-     * Returns the 4 corners in clockwise order (float).
+     * @brief Find a strong quadrilateral in a binary mask (CV_8UC1).
+     * Strategy: largest contour → approxPolyDP (convex 4-pt) else minAreaRect.
+     * @return 4 points (clockwise) or nullopt.
      */
     std::optional<std::vector<cv::Point2f>>
         findStrongQuad(const cv::Mat& allowedMask);
 
     /**
-     * Warp the input BGR image to a square N×N using the given quadrilateral.
-     * The quad is expected to be in clockwise order.
+     * @brief Warp BGR to N×N square using a clockwise quad.
+     * @return Warped CV_8UC3 image. Throws on invalid homography.
      */
     cv::Mat warpToSquare(const cv::Mat& bgr,
         const std::vector<cv::Point2f>& quad,
         int N);
 
-    WarpResult warpToSquareWithH(const cv::Mat& bgr, const std::vector<cv::Point2f>& quad, int N);
+    /**
+     * @brief Warp and also return H/Hinv.
+     * @return WarpResult with image, H (src->dst), Hinv (dst->src).
+     */
+    WarpResult warpToSquareWithH(const cv::Mat& bgr,
+        const std::vector<cv::Point2f>& quad,
+        int N);
 
     /**
-     * Compute polygon coverage in percent relative to the whole image size.
-     * poly: polygon in the ORIGINAL image coordinates.
-     * sz: original image size.
-     * returns: 100.0 * area(poly) / (W*H)
+     * @brief 100 * area(poly) / (W*H). Poly in original coords.
+     * @return Percentage in [0, 100]. 0 if invalid/empty.
      */
     double polygonCoveragePercent(const std::vector<cv::Point2f>& poly,
         const cv::Size& sz);

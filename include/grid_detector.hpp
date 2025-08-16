@@ -3,22 +3,25 @@
 
 namespace grid {
 
+    /// @brief Approximate seam (grid-line) positions in X/Y.
     struct Seams {
         int cx1 = -1, cx2 = -1;
         int cy1 = -1, cy2 = -1;
-        bool ok = false;
+        bool ok = false;   // true if both vertical and horizontal seams found
     };
 
-    // NEW: per-cell coverage report for the 3x3 grid
+    /// @brief Per-cell coverage for the 3×3 grid.
     struct CellsReport {
-        double frac[3][3];  // fraction of "allowed" pixels in each cell
-        bool ok = false;    // true iff every cell >= minFraction
+        double frac[3][3]; // fraction of "allowed" pixels in each cell
+        bool ok = false;   // true if all cells ≥ minFraction
     };
 
-    // Existing:
+    /// @brief Check vertical/horizontal seams at ~1/3 and ~2/3 of the mask.
     Seams checkGridSeams(const cv::Mat& mask);
 
-    // NEW: checks each of the 9 cells in the warped mask (N×N).
-    // Returns per-cell fractions and overall pass/fail by minFraction.
+    /// @brief Check each of the 9 cells in a warped N×N mask.
+    /// @param mask Warped binary mask.
+    /// @param minFraction Minimum fraction of "allowed" pixels per cell.
+    /// @return Fractions per cell + overall pass/fail.
     CellsReport checkGridCells(const cv::Mat& mask, double minFraction);
 }

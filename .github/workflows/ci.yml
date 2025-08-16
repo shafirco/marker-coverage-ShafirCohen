@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+
+jobs:
+  build-test:
+    name: Build & Test (CMake + OpenCV)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up CMake
+        uses: lukka/get-cmake@v3
+
+      # ---- Ubuntu deps (OpenCV via apt) ----
+      - name: Install deps (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build pkg-config libopencv-dev
+
+      # ---- Windows deps (OpenCV via vcpkg binary cache) ----
+      - name: Setup vcpkg (Windows)
+        if: runner.os == 'Windows'
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: 41a5bd3bd9b9ec421f9e2b5f0c1d9b09d9c6b3f1
+          runVcpkgInstall: false
+
+      - name: Install OpenCV (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          vcpkg install opencv[core]:x64-windows
+          echo "VCPKG_ROOT=$env:VCPKG_ROOT" >> $env:GITHUB_ENV
+          echo "CMAKE_TOOLCHAIN_FILE=$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" >> $env:GITHUB_ENV
+
+      - name: Configure (CMake)
+        run: |
+          cmake -S . -B build ^
+            ${{ runner.os == 'Windows' && format('-DCMAKE_TOOLCHAIN_FILE={0}', env.CMAKE_TOOLCHAIN_FILE) || '' }} ^
+            -DCMAKE_BUILD_TYPE=Release
+        shell: bash
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure --build-config Release
