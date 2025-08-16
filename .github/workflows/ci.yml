@@ -57,7 +57,7 @@ jobs:
         if: runner.os == 'Windows'
         uses: lukka/run-vcpkg@v11
         with:
-
+          vcpkgGitCommitId: 4bb07a326d9b9bce3703272a509e5bc25dd9cfd5
           runVcpkgInstall: false
 
       - name: Install OpenCV (Windows)
