@@ -1,23 +1,19 @@
-# Enable testing framework
-enable_testing()
+cmake_minimum_required(VERSION 3.21)
 
-# Make sure OpenCV is available for tests
-find_package(OpenCV 4 REQUIRED COMPONENTS core imgproc highgui)
-
-# Include headers from project
-include_directories(${CMAKE_SOURCE_DIR}/include)
-
-# Add test executable
+# Single basic test
 add_executable(mce_tests
     tests_basic.cpp
 )
 
-# Link either to your core library (if exists) or directly to OpenCV
-# Example if you have a target mce_core:
-# target_link_libraries(mce_tests PRIVATE mce_core ${OpenCV_LIBS})
+# Link against the core library and OpenCV
+target_link_libraries(mce_tests PRIVATE mce_core ${OpenCV_LIBS})
 
-# If no core library target, link OpenCV only:
-target_link_libraries(mce_tests PRIVATE ${OpenCV_LIBS})
+# Include project and OpenCV headers
+target_include_directories(mce_tests PRIVATE
+    ${OpenCV_INCLUDE_DIRS}
+    ${CMAKE_SOURCE_DIR}/include
+)
 
-# Register the test
-add_test(NAME BasicTest COMMAND mce_tests)
+# Enable running the tests through CTest (optional)
+enable_testing()
+add_test(NAME mce_tests COMMAND mce_tests)
