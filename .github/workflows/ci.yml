@@ -57,8 +57,7 @@ jobs:
         if: runner.os == 'Windows'
         uses: lukka/run-vcpkg@v11
         with:
-          vcpkgGitCommitId: 4bb07a326d9b9bce3703272a509e5bc25dd9cfd5
-          runVcpkgInstall: false
+          runVcpkgInstall: true
 
       - name: Install OpenCV (Windows)
         if: runner.os == 'Windows'
@@ -74,7 +73,7 @@ jobs:
         run: >
           cmake -S . -B build -G "Ninja"
           -DCMAKE_BUILD_TYPE=Release
-          -DCMAKE_TOOLCHAIN_FILE="${env:CMAKE_TOOLCHAIN_FILE}"
+          -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake"
 
       - name: Build (Windows)
         if: runner.os == 'Windows'
