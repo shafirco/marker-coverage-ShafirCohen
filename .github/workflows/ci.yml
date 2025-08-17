@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - name: Checkout
@@ -46,13 +46,33 @@ jobs:
         if: runner.os == 'Linux'
         run: ctest --test-dir build --output-on-failure
 
+      # ---------- macOS ----------
+      - name: Install deps (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          brew install opencv pkg-config
+
+      - name: Configure (macOS)
+        if: runner.os == 'macOS'
+        run: >
+          cmake -S . -B build -G "Ninja"
+          -DCMAKE_BUILD_TYPE=Release
+          -DOpenCV_DIR=$(brew --prefix)/opt/opencv/share/opencv4
+
+      - name: Build (macOS)
+        if: runner.os == 'macOS'
+        run: cmake --build build --config Release --parallel
+
+      - name: Run tests (macOS)
+        if: runner.os == 'macOS'
+        run: ctest --test-dir build --output-on-failure
+
       # ---------- Windows ----------
-      
       - name: MSVC Developer Command Prompt
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
 
-      
       - name: Setup vcpkg (Windows)
         if: runner.os == 'Windows'
         uses: lukka/run-vcpkg@v11
