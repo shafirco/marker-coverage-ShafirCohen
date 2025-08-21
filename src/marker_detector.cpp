@@ -1,5 +1,4 @@
-﻿// marker_detector.cpp
-//
+﻿
 // High-level detector for a 3×3 colored marker.
 // Pipeline:
 //   1) HSV color segmentation → binary mask of allowed colors.
@@ -133,9 +132,32 @@ MarkerDetector::detect(const cv::Mat& bgr,
     Timer t3;
     const int N = std::max(32, opt.warp_size);
 
+    // Warp the original image to a square using the quad.
     auto warpRes = geom::warpToSquareWithH(bgr, quad, N);
     cv::Mat warped = warpRes.image;
-    cv::Mat warpedMask = ColorSegmenter::allowedMaskHSV(warped, sopt);
+
+    // Build a warped mask using the same segmentation options,
+    // but allow a one-time, local relaxation if the mask is too sparse.
+    // NOTE: this does NOT change the global mask in (1)—it only
+    // adapts the warped-view where blur/low saturation could hide colors.
+    SegOptions sopt_warp = sopt;
+    cv::Mat warpedMask = ColorSegmenter::allowedMaskHSV(warped, sopt_warp);
+
+    // One-shot local relaxation on warped-mask only (helps blurred/low-S cases).
+    {
+        const double totalW = std::max(1.0, (double)warped.total());
+        const double frac = (double)cv::countNonZero(warpedMask) / totalW;
+
+        // If the warped mask is very sparse (<3%), relax S/V a bit and try once more.
+        if (frac < 0.03) {
+            sopt_warp.smin = std::max(0, sopt_warp.smin - 20);
+            sopt_warp.vmin = std::max(0, sopt_warp.vmin - 20);
+            // A slightly stronger close helps reconnect split color blobs.
+            sopt_warp.close_iter = std::max(1, sopt_warp.close_iter);
+            warpedMask = ColorSegmenter::allowedMaskHSV(warped, sopt_warp);
+        }
+    }
+
     t_warp = t3.ms();
 
     saveIf(warped, outdir / (base + "_warped.png"), opt.save_debug, opt.debug);
@@ -144,10 +166,47 @@ MarkerDetector::detect(const cv::Mat& bgr,
     // ---------------------------------------------------------------------
     // (4) Grid validation: seams (diagnostics) + cells (decision)
     //     - Strict mode requires cells.ok == true.
+    //     - Added a color/saturation fallback: if ≥7 of 9 cells are "colorful enough",
+    //       we accept the grid (helps blurred low-mask cases like p5).
     // ---------------------------------------------------------------------
+
     Timer t4;
     auto seams = grid::checkGridSeams(warpedMask);
     auto cells = grid::checkGridCells(warpedMask, opt.min_cell_fraction);
+
+    // Fallback: consider cells "colorful" if their mean S and V are high enough.
+    // This check runs on the warped BGR image (not on the mask), so it can still pass
+    // when the warped mask is under-segmented but colors are visibly present.
+    auto colorful_cells_ge7 = [&]()->bool {
+        CV_Assert(warped.type() == CV_8UC3 && warped.rows == warped.cols);
+        const int Nw = warped.rows;
+        const int cell = Nw / 3;
+
+        cv::Mat hsv; cv::cvtColor(warped, hsv, cv::COLOR_BGR2HSV);
+
+        int okCells = 0;
+        for (int r = 0; r < 3; ++r) {
+            for (int c = 0; c < 3; ++c) {
+                const int x = c * cell;
+                const int y = r * cell;
+                const int w = (c == 2 ? Nw - x : cell);
+                const int h = (r == 2 ? Nw - y : cell);
+                cv::Mat roi = hsv(cv::Rect(x, y, w, h));
+
+                // Average saturation and value in the cell.
+                const cv::Scalar meanHSV = cv::mean(roi);
+                const double meanS = meanHSV[1];
+                const double meanV = meanHSV[2];
+
+                // Soft thresholds tuned for blurred, low-contrast markers.
+                if (meanS >= 70.0 && meanV >= 60.0) {
+                    okCells++;
+                }
+            }
+        }
+        return okCells >= 7; // accept if at least 7 of 9 look "colorful"
+    }();
+
     t_grid = t4.ms();
 
     if (opt.debug) {
@@ -156,8 +215,16 @@ MarkerDetector::detect(const cv::Mat& bgr,
             << ", ok=" << seams.ok << "\n";
         std::cerr << "[debug] cells ok=" << (cells.ok ? 1 : 0)
             << " (min=" << opt.min_cell_fraction << ")\n";
+        std::cerr << "[debug] colorful>=7=" << (colorful_cells_ge7 ? "true" : "false") << "\n";
     }
-    const bool grid_ok = cells.ok;
+
+    // Decision: in strict mode require BOTH seams and cells.
+  // In non-strict mode, allow the colorful fallback as a helper.
+    const bool grid_ok =
+        (opt.strict_grid)
+        ? (seams.ok && cells.ok)
+        : (cells.ok || colorful_cells_ge7);
+
 
     // ---------------------------------------------------------------------
     // (5) Final polygon = initial quad (no refinement)
@@ -172,6 +239,12 @@ MarkerDetector::detect(const cv::Mat& bgr,
     // (6) Coverage computation
     // ---------------------------------------------------------------------
     double cov = geom::polygonCoveragePercent(final_poly, bgr.size());
+    // Reject unrealistically tiny polygons (prevents 0% false positives).
+    const double kMinCovPct = 0.5; // percent
+    if (cov < kMinCovPct) {
+        if (opt.debug) std::cerr << "[debug] coverage guard failed (" << cov << "%)\n";
+        return std::nullopt;
+    }
 
     // Timing summary
     if (opt.debug) {

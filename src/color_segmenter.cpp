@@ -159,11 +159,12 @@ Mat ColorSegmenter::allowedMaskHSV(const Mat& bgr, const SegOptions& opt) {
         const double nz1 = (double)cv::countNonZero(mask_after);
 
         // Brake: if we removed too much (>30%), keep the original mask.
-        if (nz1 >= 0.7 * nz0) {
+        if (nz1 >= 0.65 * nz0) {
             mask = mask_after;
         }
         // else: keep mask as-is
     }
+
 
     // Gentle relaxation only if the mask is extremely sparse.
     gentleRelaxIfSparse(hsv, mask, smin, vmin);
