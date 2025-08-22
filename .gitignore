@@ -37,10 +37,25 @@ Thumbs.db
 *.pdb
 *.ilk
 
-# Artifacts
-*.png
-*.jpg
-*.jpeg
-*.bmp
-*.tiff
+# Visual Studio tracking files
+*.tlog
+*.recipe
+*.lastbuildstate
+
+# vcpkg artifacts
+vcpkg_installed/
+vcpkg-manifest-install.log
+
+# CMake temp files
+CMakeFiles/
+CMakeCache.txt
+
+# Debug artifacts (keep sample images but ignore debug output)
+*_mask.png
+*_poly.png
+*_warped.png
+*_warped_mask.png
+*_poly_refined.png
+
+# Logs
 *.log

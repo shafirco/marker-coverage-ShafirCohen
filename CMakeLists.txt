@@ -8,13 +8,12 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # Find OpenCV package
 find_package(OpenCV REQUIRED)
 
-# Core library (now with real sources)
+# Core library 
 add_library(mce_core
     src/color_segmenter.cpp
     src/geometry.cpp
     src/grid_detector.cpp 
     src/marker_detector.cpp
-    src/timer.cpp
 )
 target_include_directories(mce_core PUBLIC ${CMAKE_SOURCE_DIR}/include)
 target_link_libraries(mce_core PUBLIC ${OpenCV_LIBS})

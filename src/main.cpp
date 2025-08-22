@@ -68,6 +68,7 @@ int main(int argc, char** argv) {
                 return 2;
             }
         }
+
         else {
             // Treat as image path.
             paths.push_back(std::move(s));

@@ -199,7 +199,7 @@ MarkerDetector::detect(const cv::Mat& bgr,
                 const double meanV = meanHSV[2];
 
                 // Soft thresholds tuned for blurred, low-contrast markers.
-                if (meanS >= 70.0 && meanV >= 60.0) {
+                if (meanS >= 60.0 && meanV >= 50.0) {
                     okCells++;
                 }
             }
@@ -222,7 +222,7 @@ MarkerDetector::detect(const cv::Mat& bgr,
   // In non-strict mode, allow the colorful fallback as a helper.
     const bool grid_ok =
         (opt.strict_grid)
-        ? (seams.ok && cells.ok)
+        ? (seams.ok && (cells.ok || colorful_cells_ge7))
         : (cells.ok || colorful_cells_ge7);
 
 

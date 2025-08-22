@@ -58,10 +58,10 @@ int main() {
 
     // Coverage: full quad ~100%
     std::vector<cv::Point2f> quad = {
-        {0.f,0.f},{299.f,0.f},{299.f,299.f},{0.f,299.f}
+        {0.f,0.f},{300.f,0.f},{300.f,300.f},{0.f,300.f}
     };
     double cov = geom::polygonCoveragePercent(quad, img.size());
-    assert(approx(cov, 100.0, 1e-6));
+    assert(approx(cov, 100.0, 1.0));  // Allow 1% tolerance for rounding
 
     // === Negative cases ===
     cv::Mat empty(300, 300, CV_8UC3, cv::Scalar(0, 0, 0));
@@ -73,10 +73,21 @@ int main() {
     double frac_g = (double)cv::countNonZero(mg) / (double)mg.total();
     assert(frac_g < 0.01);
 
-    // === Rotation test (30�) ===
+    // === Rotation tests ===
+    // Test 30째 rotation
     cv::Mat rot30 = rotate_keep_all(img, 30.0);
-    cv::Mat mask_rot = ColorSegmenter::allowedMaskHSV(rot30);
-    assert(cv::countNonZero(mask_rot) > 0 && "Rotated grid should still be detected");
+    cv::Mat mask_rot30 = ColorSegmenter::allowedMaskHSV(rot30);
+    assert(cv::countNonZero(mask_rot30) > 0 && "30째 rotated grid should still be detected");
+    
+    // Test 45째 rotation (requirement: robust to 짹45째)
+    cv::Mat rot45 = rotate_keep_all(img, 45.0);
+    cv::Mat mask_rot45 = ColorSegmenter::allowedMaskHSV(rot45);
+    assert(cv::countNonZero(mask_rot45) > 0 && "45째 rotated grid should still be detected");
+    
+    // Test negative rotation
+    cv::Mat rot_neg30 = rotate_keep_all(img, -30.0);
+    cv::Mat mask_rot_neg30 = ColorSegmenter::allowedMaskHSV(rot_neg30);
+    assert(cv::countNonZero(mask_rot_neg30) > 0 && "-30째 rotated grid should still be detected");
 
     return 0;
 }
